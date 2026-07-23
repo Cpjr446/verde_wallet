@@ -42,7 +42,7 @@ export default function BudgetsPage() {
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-center border-2 border-dashed rounded-lg bg-muted/50">
             <h2 className="text-xl font-semibold">No Budgets Set</h2>
-            <p className="text-muted-foreground">Click "Add Budget" to get started.</p>
+            <p className="text-muted-foreground">Click &quot;Add Budget&quot; to get started.</p>
           </div>
         )}
       </div>

@@ -59,7 +59,7 @@ export default function OverviewCards() {
                 </CardHeader>
                 <CardContent>
                     <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
-                    <p className="text-xs text-muted-foreground">This month's expenses</p>
+                    <p className="text-xs text-muted-foreground">This month&apos;s expenses</p>
                 </CardContent>
             </Card>
              <Card>
@@ -105,7 +105,7 @@ export default function OverviewCards() {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{formatCurrency(totalExpenses)}</div>
-          <p className="text-xs text-muted-foreground">This month's expenses</p>
+          <p className="text-xs text-muted-foreground">This month&apos;s expenses</p>
         </CardContent>
       </Card>
         <Card>

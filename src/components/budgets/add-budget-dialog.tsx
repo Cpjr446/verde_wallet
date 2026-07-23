@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useAppContext } from "@/context/app-context";
+import { useBudgets, useSetBudget } from "@/context/app-context";
 import { CATEGORIES } from "@/lib/constants";
 import { PlusCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -42,7 +42,8 @@ const budgetSchema = z.object({
 
 export function AddBudgetDialog() {
   const [open, setOpen] = useState(false);
-  const { state, dispatch } = useAppContext();
+  const budgets = useBudgets();
+  const setBudget = useSetBudget();
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof budgetSchema>>({
@@ -53,14 +54,11 @@ export function AddBudgetDialog() {
   });
 
   const expenseCategories = CATEGORIES.filter(c => c.type === 'expense');
-  const budgetedCategories = state.budgets.map(b => b.categoryName);
+  const budgetedCategories = budgets.map(b => b.categoryName);
   const availableCategories = expenseCategories.filter(c => !budgetedCategories.includes(c.name));
 
   function onSubmit(values: z.infer<typeof budgetSchema>) {
-    dispatch({
-      type: "SET_BUDGET",
-      payload: { ...values, id: crypto.randomUUID() },
-    });
+    setBudget({ ...values, id: crypto.randomUUID() });
     toast({
         title: "Budget Set!",
         description: `Budget for ${values.categoryName} has been set to $${values.amount}.`,
@@ -76,7 +74,7 @@ export function AddBudgetDialog() {
           <PlusCircle className="w-4 h-4 mr-2" /> Add Budget
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[425px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Set New Budget</DialogTitle>
           <DialogDescription>

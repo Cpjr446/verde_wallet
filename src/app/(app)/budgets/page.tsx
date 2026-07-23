@@ -3,15 +3,16 @@
 import AppHeader from "@/components/layout/header";
 import { AddBudgetDialog } from "@/components/budgets/add-budget-dialog";
 import { BudgetCard } from "@/components/budgets/budget-card";
-import { useAppContext } from "@/context/app-context";
+import { useTransactions, useBudgets } from "@/context/app-context";
 import { useMemo } from "react";
 import type { Transaction } from "@/lib/types";
 
 export default function BudgetsPage() {
-  const { state } = useAppContext();
+  const transactions = useTransactions();
+  const budgets = useBudgets();
 
   const spentAmounts = useMemo(() => {
-    return state.transactions.reduce((acc, t: Transaction) => {
+    return transactions.reduce((acc, t: Transaction) => {
       if (t.type === 'expense') {
         if (!acc[t.category.name]) {
           acc[t.category.name] = 0;
@@ -20,7 +21,7 @@ export default function BudgetsPage() {
       }
       return acc;
     }, {} as Record<string, number>);
-  }, [state.transactions]);
+  }, [transactions]);
 
   return (
     <>
@@ -28,9 +29,9 @@ export default function BudgetsPage() {
         <AddBudgetDialog />
       </AppHeader>
       <div className="flex-1 p-6 overflow-y-auto">
-        {state.budgets.length > 0 ? (
+        {budgets.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {state.budgets.map(budget => (
+            {budgets.map(budget => (
               <BudgetCard
                 key={budget.id}
                 budget={budget}

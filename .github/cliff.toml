@@ -1,0 +1,40 @@
+[changelog]
+# Changelog configuration
+template = """
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+{{ range }}
+## [{{ version | trim "v" }}] - {{ date | date "%Y-%m-%d" }}
+{{ range.commits }}
+### {{ group }}
+{{ commits }}
+- {{ message | upper_first }}
+{{ end }}
+{{ end }}
+"""
+
+[git]
+# Parse the commit messages
+commit_parsers = [
+    { message = "^feat", group = "✨ Features" },
+    { message = "^fix", group = "🐛 Bug Fixes" },
+    { message = "^doc", group = "📚 Documentation" },
+    { message = "^refactor", group = "🔧 Refactor" },
+    { message = "^perf", group = "⚡ Performance" },
+    { message = "^test", group = "🧪 Tests" },
+    { message = "^chore", group = "🔧 Chores" },
+    { message = "^style", group = "🎨 Style" },
+]
+
+# Filter out the commits that are not matched by any of the parsers
+commit_preprocessors = [
+    { pattern = "^(?P<scope>\\w+)\\((?P<subject>.+)\\)$", replace = "$subject" },
+]
+
+# Protect breaking changes from being skipped due to matching a preprocessor
+protect_breaking_commits = true
+
+# Sort the commits by date
+sort_commits = "Oldest"

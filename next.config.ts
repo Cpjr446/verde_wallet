@@ -1,14 +1,10 @@
 import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+  // Image optimization
   images: {
+    minimumCacheTTL: 60,
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [
       {
         protocol: 'https',
@@ -17,6 +13,19 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+
+  // Enable compression
+  compress: true,
+
+  // TypeScript config
+  typescript: {
+    ignoreBuildErrors: process.env.NODE_ENV === 'development',
+  },
+
+  // ESLint config
+  eslint: {
+    ignoreDuringBuilds: process.env.NODE_ENV === 'development',
   },
 };
 

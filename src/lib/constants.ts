@@ -32,3 +32,22 @@ export const CATEGORIES: Category[] = [
   { name: 'Freelance', icon: PiggyBank, type: 'income'},
   { name: 'Other', icon: MoreHorizontal, type: 'all' },
 ];
+
+// Optimized category lookup map - O(1) instead of O(n) with find()
+export const CATEGORY_MAP: Record<string, Category> = CATEGORIES.reduce((acc, category) => {
+  acc[category.name] = category;
+  return acc;
+}, {} as Record<string, Category>);
+
+// Category names for AI suggestions
+export const CATEGORY_NAMES = CATEGORIES.map(c => c.name);
+
+// Valid category names for validation
+export const isValidCategory = (name: string): boolean => {
+  return name in CATEGORY_MAP;
+};
+
+// Get category by name with fallback
+export const getCategoryByName = (name: string): Category => {
+  return CATEGORY_MAP[name] || CATEGORIES.find(c => c.name === name) || CATEGORIES.find(c => c.name === 'Other')!;
+};

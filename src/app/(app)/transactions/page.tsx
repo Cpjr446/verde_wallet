@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from 'react';
 import AppHeader from "@/components/layout/header";
 import { AddTransactionDialog } from "@/components/transactions/add-transaction-dialog";
-import { useAppContext } from '@/context/app-context';
+import { useTransactions, useDeleteTransaction } from '@/context/app-context';
 import type { Transaction } from '@/lib/types';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -29,12 +29,13 @@ const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { styl
 const formatDate = (date: Date) => new Intl.DateTimeFormat('en-US').format(date);
 
 export default function TransactionsPage() {
-  const { state, dispatch } = useAppContext();
+  const transactions = useTransactions();
+  const deleteTransaction = useDeleteTransaction();
   const [sortKey, setSortKey] = useState<SortKey>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
 
   const sortedTransactions = useMemo(() => {
-    return [...state.transactions].sort((a, b) => {
+    return [...transactions].sort((a, b) => {
       if (!sortKey) return 0;
       const aValue = a[sortKey];
       const bValue = b[sortKey];
@@ -45,7 +46,7 @@ export default function TransactionsPage() {
       
       return sortOrder === 'desc' ? comparison * -1 : comparison;
     });
-  }, [state.transactions, sortKey, sortOrder]);
+  }, [transactions, sortKey, sortOrder]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -57,12 +58,12 @@ export default function TransactionsPage() {
   };
 
   const handleDelete = (id: string) => {
-    dispatch({ type: 'DELETE_TRANSACTION', payload: id });
+    deleteTransaction(id);
   };
   
   const renderSortArrow = (key: SortKey) => {
     if (sortKey !== key) return <ArrowUpDown className="w-4 h-4 ml-2" />;
-    return sortOrder === 'asc' ? '▲' : '▼';
+    return sortOrder === 'asc' ? '\u25b2' : '\u25bc';
   };
 
   return (
@@ -126,6 +127,13 @@ export default function TransactionsPage() {
             </TableBody>
           </Table>
         </div>
+        
+        {sortedTransactions.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+            <p>No transactions yet.</p>
+            <p className="text-sm mt-2">Add your first transaction to get started.</p>
+          </div>
+        )}
       </div>
     </>
   );

@@ -4,15 +4,15 @@ import * as React from "react"
 import { Pie, PieChart, ResponsiveContainer, Tooltip, Cell, Legend } from "recharts"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { useAppContext } from "@/context/app-context"
+import { useTransactions } from "@/context/app-context"
 import { useMemo } from "react"
 import { chartConfig } from "@/lib/chart-config"
 
 export default function ExpenseChart() {
-  const { state } = useAppContext();
+  const transactions = useTransactions();
 
   const data = useMemo(() => {
-    const expenseData = state.transactions
+    const expenseData = transactions
       .filter(t => t.type === 'expense')
       .reduce((acc, transaction) => {
         const categoryName = transaction.category.name;
@@ -26,7 +26,7 @@ export default function ExpenseChart() {
     return Object.entries(expenseData)
         .map(([name, total]) => ({ name, total, fill: `var(--chart-${Object.keys(chartConfig).indexOf(name) % 5 + 1})` }))
         .sort((a,b) => b.total - a.total);
-  }, [state.transactions]);
+  }, [transactions]);
 
   if (data.length === 0) {
     return (

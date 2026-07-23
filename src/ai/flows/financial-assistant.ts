@@ -1,7 +1,7 @@
 'use server';
 
 /**
- * @fileOverview A financial assistant that provides personalized recommendations.
+ * @fileOverview A financial assistant that provides personalized recommendations with caching.
  * 
  * - getFinancialAdvice - A function that provides financial advice based on user's transactions and budgets.
  * - FinancialAdviceInput - The input type for the getFinancialAdvice function.
@@ -11,6 +11,7 @@
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import { taxCalculatorTool } from '../tools/tax-calculator';
+import { financialAdviceCache, createCacheKey } from '@/lib/ai-cache';
 
 // Define Zod schemas that match the TypeScript types
 const CategorySchema = z.object({
@@ -49,10 +50,6 @@ const FinancialAdviceOutputSchema = z.object({
 });
 export type FinancialAdviceOutput = z.infer<typeof FinancialAdviceOutputSchema>;
 
-export async function getFinancialAdvice(input: FinancialAdviceInput): Promise<FinancialAdviceOutput> {
-    return financialAdviceFlow(input);
-}
-
 const prompt = ai.definePrompt({
   name: 'financialAdvicePrompt',
   model: 'googleai/gemini-1.5-flash',
@@ -85,6 +82,32 @@ Based on this data, provide concise, insightful, and actionable advice.
 Generate the response strictly in the requested JSON format. Be friendly but professional in your tone.`,
 });
 
+// Cache wrapper for financial advice
+async function getFinancialAdviceWithCache(input: FinancialAdviceInput): Promise<FinancialAdviceOutput> {
+  // Create a cache key based on the input (excluding currentDate for broader cache hits)
+  const cacheInput = {
+    transactions: input.transactions,
+    budgets: input.budgets,
+    annualSalary: input.annualSalary,
+  };
+  const cacheKey = createCacheKey('financial-advice', cacheInput);
+  
+  // Check cache first
+  const cached = financialAdviceCache.get<FinancialAdviceOutput>(cacheKey);
+  if (cached) {
+    console.log('Financial advice cache hit');
+    return cached;
+  }
+  
+  console.log('Financial advice cache miss');
+  const { output } = await prompt(input);
+  
+  // Cache the result
+  financialAdviceCache.set(cacheKey, output!, 1800000); // 30 minutes
+  
+  return output!;
+}
+
 const financialAdviceFlow = ai.defineFlow(
   {
     name: 'financialAdviceFlow',
@@ -92,7 +115,10 @@ const financialAdviceFlow = ai.defineFlow(
     outputSchema: FinancialAdviceOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    return output!;
+    return getFinancialAdviceWithCache(input);
   }
 );
+
+export async function getFinancialAdvice(input: FinancialAdviceInput): Promise<FinancialAdviceOutput> {
+  return getFinancialAdviceWithCache(input);
+}

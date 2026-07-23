@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { z } from "zod"
@@ -36,8 +36,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { useAppContext } from "@/context/app-context"
-import { CATEGORIES } from "@/lib/constants"
+import { useAddTransaction } from "@/context/app-context"
+import { CATEGORIES, CATEGORY_MAP, getCategoryByName } from "@/lib/constants"
 import { useSuggestCategory } from "@/hooks/use-suggest-category"
 import { useToast } from "@/hooks/use-toast"
 import type { Category } from "@/lib/types"
@@ -51,7 +51,7 @@ const formSchema = z.object({
 })
 
 function TransactionForm({ type, setOpen }: { type: "expense" | "income", setOpen: (open: boolean) => void }) {
-  const { dispatch } = useAppContext()
+  const addTransaction = useAddTransaction();
   const { suggestCategory, isLoading: isSuggesting } = useSuggestCategory();
   const { toast } = useToast();
 
@@ -62,35 +62,45 @@ function TransactionForm({ type, setOpen }: { type: "expense" | "income", setOpe
       amount: 0,
       description: "",
       date: new Date(),
+      category: "",
     },
   })
 
   const onSubmit = (values: z.infer<typeof formSchema>) => {
-    const category = CATEGORIES.find(c => c.name === values.category) as Category;
-    dispatch({
-      type: 'ADD_TRANSACTION',
-      payload: { ...values, id: crypto.randomUUID(), category }
-    })
+    const category = getCategoryByName(values.category);
+    
+    addTransaction({
+      type: values.type,
+      amount: values.amount,
+      description: values.description,
+      date: values.date,
+      category: category.name,
+    });
+    
     toast({
       title: "Transaction Added",
       description: `${type === 'expense' ? 'Expense' : 'Income'} of $${values.amount} for ${values.description} added.`,
     })
     setOpen(false)
+    form.reset();
   }
 
-  const handleSuggestCategory = async () => {
+  const handleSuggestCategory = useCallback(async () => {
     const description = form.getValues("description");
-    const suggested = await suggestCategory(description);
-    if (suggested && CATEGORIES.some(c => c.name === suggested)) {
-      form.setValue("category", suggested);
-    } else if (suggested) {
+    if (!description.trim()) {
       toast({
-        title: "Suggestion Not Found",
-        description: `AI suggested "${suggested}", but it's not a valid category.`,
-        variant: "destructive"
+        title: "No Description",
+        description: "Please enter a description first.",
+        variant: "destructive",
       });
+      return;
     }
-  };
+    
+    const suggested = await suggestCategory(description);
+    if (suggested) {
+      form.setValue("category", suggested);
+    }
+  }, [form, suggestCategory, toast]);
   
   const relevantCategories = CATEGORIES.filter(c => c.type === type || c.type === 'all');
 
@@ -104,7 +114,12 @@ function TransactionForm({ type, setOpen }: { type: "expense" | "income", setOpe
             <FormItem>
               <FormLabel>Amount</FormLabel>
               <FormControl>
-                <Input type="number" placeholder="0.00" {...field} />
+                <Input 
+                  type="number" 
+                  placeholder="0.00" 
+                  autoFocus
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -117,7 +132,10 @@ function TransactionForm({ type, setOpen }: { type: "expense" | "income", setOpe
             <FormItem>
               <FormLabel>{type === 'expense' ? 'Description' : 'Source'}</FormLabel>
               <FormControl>
-                <Textarea placeholder={type === 'expense' ? 'e.g. Groceries, Rent...' : 'e.g. Salary, Side hustle...'} {...field} />
+                <Textarea 
+                  placeholder={type === 'expense' ? 'e.g. Groceries, Rent...' : 'e.g. Salary, Side hustle...'} 
+                  {...field} 
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -214,7 +232,7 @@ export function AddTransactionDialog() {
           Add Transaction
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[480px]">
+      <DialogContent className="sm:max-w-[480px]" onOpenAutoFocus={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Add Transaction</DialogTitle>
         </DialogHeader>

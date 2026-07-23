@@ -3,10 +3,10 @@
 import type { Budget } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { CATEGORIES } from "@/lib/constants";
+import { CATEGORY_MAP } from "@/lib/constants";
 import { Trash2 } from "lucide-react";
 import { Button } from "../ui/button";
-import { useAppContext } from "@/context/app-context";
+import { useDeleteBudget } from "@/context/app-context";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,14 +32,14 @@ const formatCurrency = (amount: number) => {
 };
 
 export function BudgetCard({ budget, spent }: BudgetCardProps) {
-  const { dispatch } = useAppContext();
+  const deleteBudget = useDeleteBudget();
   const progress = (spent / budget.amount) * 100;
   const remaining = budget.amount - spent;
-  const category = CATEGORIES.find(c => c.name === budget.categoryName);
+  const category = CATEGORY_MAP[budget.categoryName];
   const Icon = category?.icon;
 
   const handleDelete = () => {
-    dispatch({ type: 'DELETE_BUDGET', payload: budget.id });
+    deleteBudget(budget.id);
   };
 
   return (

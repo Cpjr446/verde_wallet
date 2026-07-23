@@ -1,15 +1,17 @@
 'use server';
 
 /**
- * @fileOverview Suggests spending categories based on transaction descriptions.
+ * @fileOverview Suggests spending categories based on transaction descriptions with caching.
  *
  * - suggestCategory - A function that suggests a spending category for a given transaction description.
  * - SuggestCategoryInput - The input type for the suggestCategory function.
  * - SuggestCategoryOutput - The return type for the suggestCategory function.
  */
 
-import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import { ai } from '@/ai/genkit';
+import { z } from 'genkit';
+import { categorySuggestionCache, createCacheKey } from '@/lib/ai-cache';
+import { CATEGORY_NAMES } from '@/lib/constants';
 
 const SuggestCategoryInputSchema = z.object({
   transactionDescription: z
@@ -23,20 +25,36 @@ const SuggestCategoryOutputSchema = z.object({
 });
 export type SuggestCategoryOutput = z.infer<typeof SuggestCategoryOutputSchema>;
 
-export async function suggestCategory(input: SuggestCategoryInput): Promise<SuggestCategoryOutput> {
-  return suggestCategoryFlow(input);
+// Cache wrapper for category suggestions
+async function suggestCategoryWithCache(input: SuggestCategoryInput): Promise<SuggestCategoryOutput> {
+  const cacheKey = createCacheKey('category-suggestion', input);
+  
+  // Check cache first
+  const cached = categorySuggestionCache.get<SuggestCategoryOutput>(cacheKey);
+  if (cached) {
+    console.log(`Category suggestion cache hit for: ${input.transactionDescription}`);
+    return cached;
+  }
+  
+  console.log(`Category suggestion cache miss for: ${input.transactionDescription}`);
+  const { output } = await prompt(input);
+  
+  // Cache the result
+  categorySuggestionCache.set(cacheKey, output!, 3600000); // 1 hour
+  
+  return output!;
 }
 
 const prompt = ai.definePrompt({
   name: 'suggestCategoryPrompt',
   model: 'googleai/gemini-1.5-flash',
-  input: {schema: SuggestCategoryInputSchema},
-  output: {schema: SuggestCategoryOutputSchema},
-  prompt: `You are a personal finance assistant. Your task is to suggest a spending category for a given transaction description.
+  input: { schema: SuggestCategoryInputSchema },
+  output: { schema: SuggestCategoryOutputSchema },
+  prompt: `You are a personal finance assistant. Classify the following transaction description into one of these categories: ${CATEGORY_NAMES.join(', ')}.
 
-  Transaction Description: {{{transactionDescription}}}
+Transaction Description: {{{transactionDescription}}}
 
-  Suggest one category that best fits the transaction. Just respond with the category name.  Do not include any other text or explanation. Possible categories include: Groceries, Transportation, Salary, Utilities, Entertainment, Shopping, Housing, Food, Travel, Personal Care, Education, Investment, or Other.`,
+Respond with ONLY the exact category name from the list above. Do not include any other text, explanation, or formatting.`,
 });
 
 const suggestCategoryFlow = ai.defineFlow(
@@ -46,7 +64,10 @@ const suggestCategoryFlow = ai.defineFlow(
     outputSchema: SuggestCategoryOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
-    return output!;
+    return suggestCategoryWithCache(input);
   }
 );
+
+export async function suggestCategory(input: SuggestCategoryInput): Promise<SuggestCategoryOutput> {
+  return suggestCategoryWithCache(input);
+}

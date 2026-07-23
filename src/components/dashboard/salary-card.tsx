@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,8 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useAppContext } from '@/context/app-context';
-import { calculateTaxes } from '@/ai/tools/tax-calculator';
+import { useAnnualSalary, useTaxDetails, useSetSalary } from '@/context/app-context';
 import { Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
@@ -18,25 +17,28 @@ const salarySchema = z.object({
 });
 
 export default function SalaryCard() {
-  const { state, dispatch } = useAppContext();
+  const annualSalary = useAnnualSalary();
+  const taxDetails = useTaxDetails();
+  const setSalary = useSetSalary();
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<z.infer<typeof salarySchema>>({
     resolver: zodResolver(salarySchema),
     defaultValues: {
-      salary: state.annualSalary || 60000,
+      salary: annualSalary || 60000,
     },
   });
+
+  // Update form when salary changes externally
+  useEffect(() => {
+    form.reset({ salary: annualSalary || 60000 });
+  }, [annualSalary, form]);
 
   const onSubmit = async (values: z.infer<typeof salarySchema>) => {
     setIsLoading(true);
     try {
-      const taxDetails = await calculateTaxes(values.salary);
-      dispatch({
-        type: 'SET_SALARY_AND_TAXES',
-        payload: { annualSalary: values.salary, taxDetails },
-      });
+      await setSalary(values.salary);
       toast({
         title: "Salary Updated",
         description: "Your income and tax details have been recalculated.",
@@ -75,6 +77,13 @@ export default function SalaryCard() {
                 </FormItem>
               )}
             />
+            
+            {taxDetails && (
+              <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm">
+                <p><strong>Net Monthly Income:</strong> ${(taxDetails.netMonthlyIncome).toFixed(2)}</p>
+                <p><strong>Est. Taxes:</strong> ${(taxDetails.totalEstimatedTaxes / 12).toFixed(2)}/month</p>
+              </div>
+            )}
           </CardContent>
           <CardFooter>
             <Button type="submit" disabled={isLoading || !form.formState.isDirty}>

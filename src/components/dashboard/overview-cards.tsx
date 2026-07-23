@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import { useAppContext } from '@/context/app-context';
+import { useTaxDetails, useTransactions, useBudgets, useAnnualSalary } from '@/context/app-context';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingDown, TrendingUp, Receipt } from 'lucide-react';
 import { Skeleton } from '../ui/skeleton';
@@ -14,29 +14,32 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function OverviewCards() {
-  const { state } = useAppContext();
+  const transactions = useTransactions();
+  const budgets = useBudgets();
+  const annualSalary = useAnnualSalary();
+  const taxDetails = useTaxDetails();
 
   const { monthlyIncome, totalExpenses, balance } = useMemo(() => {
-    const monthlyIncome = state.taxDetails?.netMonthlyIncome || 0;
+    const monthlyIncome = taxDetails?.netMonthlyIncome || 0;
 
-    const supplementaryIncome = state.transactions
+    const supplementaryIncome = transactions
       .filter(t => t.type === 'income')
       .reduce((sum, t) => sum + t.amount, 0);
 
     const totalMonthlyIncome = monthlyIncome + supplementaryIncome;
 
-    const totalExpenses = state.transactions
+    const totalExpenses = transactions
       .filter(t => t.type === 'expense')
       .reduce((sum, t) => sum + t.amount, 0);
 
     const balance = totalMonthlyIncome - totalExpenses;
 
     return { monthlyIncome: totalMonthlyIncome, totalExpenses, balance };
-  }, [state.transactions, state.taxDetails]);
+  }, [transactions, taxDetails]);
   
-  const totalTaxes = state.taxDetails?.totalEstimatedTaxes ? state.taxDetails.totalEstimatedTaxes / 12 : 0;
+  const totalTaxes = taxDetails?.totalEstimatedTaxes ? taxDetails.totalEstimatedTaxes / 12 : 0;
 
-  if (!state.taxDetails) {
+  if (!taxDetails) {
     return (
         <div className="grid gap-6 md:grid-cols-4">
             <Card>

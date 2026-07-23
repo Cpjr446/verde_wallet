@@ -4,14 +4,16 @@ import { useState } from "react";
 import AppHeader from "@/components/layout/header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useAppContext } from "@/context/app-context";
+import { useTransactions, useBudgets, useAnnualSalary } from "@/context/app-context";
 import { getFinancialAdvice, type FinancialAdviceOutput, type FinancialAdviceInput } from "@/ai/flows/financial-assistant";
 import { AlertTriangle, BadgeCheck, Bot, Lightbulb, Loader2, TrendingUp } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
 export default function AssistantPage() {
-    const { state } = useAppContext();
+    const transactions = useTransactions();
+    const budgets = useBudgets();
+    const annualSalary = useAnnualSalary();
     const [advice, setAdvice] = useState<FinancialAdviceOutput | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -22,7 +24,7 @@ export default function AssistantPage() {
         setAdvice(null);
         try {
             const processedInput: FinancialAdviceInput = {
-                transactions: state.transactions.map(t => ({
+                transactions: transactions.map(t => ({
                     id: t.id,
                     type: t.type,
                     amount: t.amount,
@@ -33,8 +35,8 @@ export default function AssistantPage() {
                         type: t.category.type,
                     }
                 })),
-                budgets: state.budgets,
-                annualSalary: state.annualSalary,
+                budgets: budgets,
+                annualSalary: annualSalary,
                 currentDate: new Date().toISOString()
             };
             const result = await getFinancialAdvice(processedInput);

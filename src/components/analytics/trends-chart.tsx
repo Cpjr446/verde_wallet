@@ -5,15 +5,15 @@ import { Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, Legend, Ca
 import { format, parse, startOfMonth } from "date-fns"
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { useAppContext } from "@/context/app-context"
+import { useTransactions } from "@/context/app-context"
 import { useMemo } from "react"
 import type { Transaction } from "@/lib/types"
 
 export default function TrendsChart() {
-  const { state } = useAppContext();
+  const transactions = useTransactions();
 
   const data = useMemo(() => {
-    const monthlyData = state.transactions
+    const monthlyData = transactions
       .reduce((acc, t: Transaction) => {
         const month = format(startOfMonth(t.date), 'yyyy-MM');
         if (!acc[month]) {
@@ -30,7 +30,7 @@ export default function TrendsChart() {
         }))
         .sort((a,b) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
-  }, [state.transactions]);
+  }, [transactions]);
 
   if (data.length === 0) {
     return (

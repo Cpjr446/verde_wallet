@@ -31,3 +31,11 @@ export interface TaxDetails {
   netAnnualIncome: number;
   netMonthlyIncome: number;
 }
+
+export interface MonthlyDataPoint {
+  id: string;
+  year: number;
+  month: number; // 0-11
+  income: number;
+  expense: number;
+}

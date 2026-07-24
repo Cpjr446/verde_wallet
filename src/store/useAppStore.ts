@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, PersistStorage, StorageValue } from 'zustand/middleware';
-import type { Transaction, Budget, TaxDetails } from '@/lib/types';
+import type { Transaction, Budget, TaxDetails, MonthlyDataPoint } from '@/lib/types';
 import { CATEGORIES, CATEGORY_MAP } from '@/lib/constants';
 import { calculateTaxes } from '@/ai/tools/tax-calculator';
 
@@ -9,6 +9,7 @@ interface AppState {
   budgets: Budget[];
   annualSalary: number;
   taxDetails?: TaxDetails;
+  customMonthlyData: MonthlyDataPoint[];
 }
 
 interface AppActions {
@@ -19,6 +20,8 @@ interface AppActions {
   deleteBudget: (id: string) => void;
   setSalary: (annualSalary: number) => Promise<void>;
   setSalaryAndTaxes: (annualSalary: number, taxDetails: TaxDetails) => void;
+  setMonthlyDataPoint: (point: Omit<MonthlyDataPoint, 'id'>) => void;
+  deleteMonthlyDataPoint: (id: string) => void;
   
   // Selectors for optimized re-renders
   getTransactionsByType: (type: 'income' | 'expense') => Transaction[];
@@ -41,6 +44,15 @@ const initialTransactions: Transaction[] = [
 const initialBudgets: Budget[] = [
   { id: 'b1', categoryName: 'Groceries', amount: 400 },
   { id: 'b2', categoryName: 'Entertainment', amount: 150 },
+];
+
+const initialMonthlyData: MonthlyDataPoint[] = [
+  { id: 'm1', year: 2026, month: 0, income: 4500, expense: 3200 }, // Jan
+  { id: 'm2', year: 2026, month: 1, income: 4500, expense: 3100 }, // Feb
+  { id: 'm3', year: 2026, month: 2, income: 4800, expense: 3500 }, // Mar
+  { id: 'm4', year: 2026, month: 3, income: 4500, expense: 3300 }, // Apr
+  { id: 'm5', year: 2026, month: 4, income: 5000, expense: 3800 }, // May
+  { id: 'm6', year: 2026, month: 5, income: 5200, expense: 3900 }, // Jun
 ];
 
 // Custom storage for Zustand persist that handles Date serialization
@@ -83,6 +95,7 @@ export const useAppStore = create<AppStore>()(
       budgets: initialBudgets,
       annualSalary: 60000,
       taxDetails: undefined,
+      customMonthlyData: initialMonthlyData,
 
       // Actions
       addTransaction: (transaction) => {
@@ -148,6 +161,28 @@ export const useAppStore = create<AppStore>()(
         set({ annualSalary, taxDetails });
       },
 
+      setMonthlyDataPoint: (point) => {
+        set((state) => {
+          const index = state.customMonthlyData.findIndex(
+            (d) => d.year === point.year && d.month === point.month
+          );
+          const updated = [...state.customMonthlyData];
+          if (index > -1) {
+            updated[index] = { ...point, id: state.customMonthlyData[index].id };
+          } else {
+            updated.push({ ...point, id: crypto.randomUUID() });
+          }
+          return { ...state, customMonthlyData: updated };
+        });
+      },
+
+      deleteMonthlyDataPoint: (id) => {
+        set((state) => ({
+          ...state,
+          customMonthlyData: state.customMonthlyData.filter((d) => d.id !== id),
+        }));
+      },
+
       // Selectors
       getTransactionsByType: (type) => {
         return get().transactions.filter(t => t.type === type);
@@ -188,6 +223,7 @@ export const useAppStore = create<AppStore>()(
         budgets: state.budgets,
         annualSalary: state.annualSalary,
         taxDetails: state.taxDetails,
+        customMonthlyData: state.customMonthlyData,
       }),
     }
   )
@@ -203,3 +239,6 @@ export const useDeleteTransaction = () => useAppStore((state) => state.deleteTra
 export const useSetBudget = () => useAppStore((state) => state.setBudget);
 export const useDeleteBudget = () => useAppStore((state) => state.deleteBudget);
 export const useSetSalary = () => useAppStore((state) => state.setSalary);
+export const useCustomMonthlyData = () => useAppStore((state) => state.customMonthlyData);
+export const useSetMonthlyDataPoint = () => useAppStore((state) => state.setMonthlyDataPoint);
+export const useDeleteMonthlyDataPoint = () => useAppStore((state) => state.deleteMonthlyDataPoint);

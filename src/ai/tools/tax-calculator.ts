@@ -35,6 +35,51 @@ const taxCalculatorPrompt = ai.definePrompt({
     Return the result ONLY in the requested JSON format.`,
 });
 
+function calculateTaxesDeterministic(annualSalary: number): TaxDetails {
+  // 2025 Standard Deduction for single filer
+  const standardDeduction = 15750;
+  const taxableIncome = Math.max(0, annualSalary - standardDeduction);
+  
+  // 2025 Federal Income Tax Brackets for Single Filer
+  const brackets = [
+    { limit: 11925, rate: 0.10 },
+    { limit: 48475, rate: 0.12 },
+    { limit: 103350, rate: 0.22 },
+    { limit: 197300, rate: 0.24 },
+    { limit: 250525, rate: 0.32 },
+    { limit: 626350, rate: 0.35 },
+    { limit: Infinity, rate: 0.37 }
+  ];
+  
+  let estimatedFederalTaxes = 0;
+  let previousLimit = 0;
+  
+  for (const bracket of brackets) {
+    if (taxableIncome > bracket.limit) {
+      estimatedFederalTaxes += (bracket.limit - previousLimit) * bracket.rate;
+      previousLimit = bracket.limit;
+    } else {
+      estimatedFederalTaxes += (taxableIncome - previousLimit) * bracket.rate;
+      break;
+    }
+  }
+  
+  // State taxes: 5% of gross annual income
+  const estimatedStateTaxes = annualSalary * 0.05;
+  const totalEstimatedTaxes = estimatedFederalTaxes + estimatedStateTaxes;
+  const netAnnualIncome = annualSalary - totalEstimatedTaxes;
+  const netMonthlyIncome = netAnnualIncome / 12;
+  
+  return {
+    grossAnnualIncome: annualSalary,
+    estimatedFederalTaxes: Math.round(estimatedFederalTaxes * 100) / 100,
+    estimatedStateTaxes: Math.round(estimatedStateTaxes * 100) / 100,
+    totalEstimatedTaxes: Math.round(totalEstimatedTaxes * 100) / 100,
+    netAnnualIncome: Math.round(netAnnualIncome * 100) / 100,
+    netMonthlyIncome: Math.round(netMonthlyIncome * 100) / 100,
+  };
+}
+
 // Cache wrapper for tax calculation
 async function calculateTaxesWithCache(annualSalary: number): Promise<TaxDetails> {
   const cacheKey = createCacheKey('tax', { annualSalary });
@@ -46,13 +91,13 @@ async function calculateTaxesWithCache(annualSalary: number): Promise<TaxDetails
     return cached;
   }
   
-  console.log(`Tax calculation cache miss for salary: ${annualSalary}`);
-  const { output } = await taxCalculatorPrompt({ annualSalary });
+  console.log(`Tax calculation cache miss for salary: ${annualSalary} (Calculating deterministically)`);
+  const result = calculateTaxesDeterministic(annualSalary);
   
   // Cache the result
-  taxCalculationCache.set(cacheKey, output!, 86400000); // 24 hours
+  taxCalculationCache.set(cacheKey, result, 86400000); // 24 hours
   
-  return output!;
+  return result;
 }
 
 export const taxCalculatorTool = ai.defineTool(

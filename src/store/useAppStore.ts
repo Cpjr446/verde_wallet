@@ -68,6 +68,17 @@ const customStorage: PersistStorage<AppState> = {
         }
         return value;
       });
+      
+      // Hydrate category icons since components cannot be serialized to JSON
+      if (parsed && parsed.state && Array.isArray(parsed.state.transactions)) {
+        parsed.state.transactions = parsed.state.transactions.map((t: any) => {
+          if (t.category && t.category.name) {
+            t.category = CATEGORY_MAP[t.category.name] || CATEGORIES.find((c) => c.name === 'Other')!;
+          }
+          return t;
+        });
+      }
+      
       return parsed;
     } catch {
       return null;

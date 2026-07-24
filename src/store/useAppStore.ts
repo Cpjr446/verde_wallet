@@ -163,12 +163,13 @@ export const useAppStore = create<AppStore>()(
 
       setMonthlyDataPoint: (point) => {
         set((state) => {
-          const index = state.customMonthlyData.findIndex(
+          const customMonthlyData = state.customMonthlyData || [];
+          const index = customMonthlyData.findIndex(
             (d) => d.year === point.year && d.month === point.month
           );
-          const updated = [...state.customMonthlyData];
+          const updated = [...customMonthlyData];
           if (index > -1) {
-            updated[index] = { ...point, id: state.customMonthlyData[index].id };
+            updated[index] = { ...point, id: customMonthlyData[index].id };
           } else {
             updated.push({ ...point, id: crypto.randomUUID() });
           }
@@ -179,7 +180,7 @@ export const useAppStore = create<AppStore>()(
       deleteMonthlyDataPoint: (id) => {
         set((state) => ({
           ...state,
-          customMonthlyData: state.customMonthlyData.filter((d) => d.id !== id),
+          customMonthlyData: (state.customMonthlyData || []).filter((d) => d.id !== id),
         }));
       },
 
@@ -225,6 +226,14 @@ export const useAppStore = create<AppStore>()(
         taxDetails: state.taxDetails,
         customMonthlyData: state.customMonthlyData,
       }),
+      merge: (persistedState, currentState) => {
+        const state = persistedState as Partial<AppState>;
+        return {
+          ...currentState,
+          ...state,
+          customMonthlyData: state?.customMonthlyData ?? currentState.customMonthlyData,
+        };
+      }
     }
   )
 );
@@ -239,6 +248,6 @@ export const useDeleteTransaction = () => useAppStore((state) => state.deleteTra
 export const useSetBudget = () => useAppStore((state) => state.setBudget);
 export const useDeleteBudget = () => useAppStore((state) => state.deleteBudget);
 export const useSetSalary = () => useAppStore((state) => state.setSalary);
-export const useCustomMonthlyData = () => useAppStore((state) => state.customMonthlyData);
+export const useCustomMonthlyData = () => useAppStore((state) => state.customMonthlyData || []);
 export const useSetMonthlyDataPoint = () => useAppStore((state) => state.setMonthlyDataPoint);
 export const useDeleteMonthlyDataPoint = () => useAppStore((state) => state.deleteMonthlyDataPoint);

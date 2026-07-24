@@ -71,7 +71,7 @@ export default function TrendsChart() {
 
   // Parse manual planning data
   const manualData = useMemo(() => {
-    return customMonthlyData
+    return (customMonthlyData || [])
       .map((d) => {
         const date = new Date(d.year, d.month, 1);
         return {

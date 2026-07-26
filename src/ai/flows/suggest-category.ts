@@ -37,12 +37,18 @@ async function suggestCategoryWithCache(input: SuggestCategoryInput): Promise<Su
   }
   
   console.log(`Category suggestion cache miss for: ${input.transactionDescription}`);
-  const { output } = await prompt(input);
+  let output: SuggestCategoryOutput = { suggestedCategory: 'Other' };
+  try {
+    const res = await prompt(input);
+    if (res && res.output && res.output.suggestedCategory) {
+      output = res.output;
+      categorySuggestionCache.set(cacheKey, output, 3600000); // 1 hour
+    }
+  } catch (e) {
+    console.error(`Category suggestion failed for "${input.transactionDescription}":`, e);
+  }
   
-  // Cache the result
-  categorySuggestionCache.set(cacheKey, output!, 3600000); // 1 hour
-  
-  return output!;
+  return output;
 }
 
 const prompt = ai.definePrompt({

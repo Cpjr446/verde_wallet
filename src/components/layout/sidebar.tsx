@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { AreaChart, Bot, Leaf, LayoutDashboard, List, Moon, Sun, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { useTheme } from "next-themes";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -17,7 +17,6 @@ const navItems = [
 
 export default function AppSidebar() {
   const pathname = usePathname();
-  const { setTheme, theme } = useTheme();
 
   return (
     <aside className="w-64 flex-shrink-0 border-r border-border bg-card flex flex-col">
@@ -46,11 +45,7 @@ export default function AppSidebar() {
         </ul>
       </nav>
       <div className="p-4 mt-auto border-t border-border">
-        <Button variant="outline" className="w-full justify-center" onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>
-          <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
-          <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
-          <span className="sr-only">Toggle theme</span>
-        </Button>
+        <ThemeToggle showLabel={true} className="w-full justify-center" />
       </div>
     </aside>
   );

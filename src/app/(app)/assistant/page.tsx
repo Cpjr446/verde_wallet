@@ -23,26 +23,53 @@ export default function AssistantPage() {
         setError(null);
         setAdvice(null);
         try {
-            const processedInput: FinancialAdviceInput = {
-                transactions: transactions.map(t => ({
-                    id: t.id,
-                    type: t.type,
-                    amount: t.amount,
-                    date: t.date.toISOString(),
-                    description: t.description,
-                    category: {
-                        name: t.category.name,
-                        type: t.category.type,
+            const processedTransactions = (transactions || []).map(t => {
+                let dateIso: string;
+                try {
+                    if (t.date instanceof Date) {
+                        dateIso = !isNaN(t.date.getTime()) ? t.date.toISOString() : new Date().toISOString();
+                    } else if (t.date && typeof t.date === 'string') {
+                        const parsed = new Date(t.date);
+                        dateIso = !isNaN(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+                    } else {
+                        dateIso = new Date().toISOString();
                     }
+                } catch {
+                    dateIso = new Date().toISOString();
+                }
+
+                return {
+                    id: t.id || crypto.randomUUID(),
+                    type: t.type === 'income' ? 'income' as const : 'expense' as const,
+                    amount: typeof t.amount === 'number' && !isNaN(t.amount) ? t.amount : 0,
+                    date: dateIso,
+                    description: t.description || 'Transaction',
+                    category: {
+                        name: t.category?.name || 'Other',
+                        type: t.category?.type === 'income' ? 'income' as const : t.category?.type === 'expense' ? 'expense' as const : 'all' as const,
+                    }
+                };
+            });
+
+            const processedInput: FinancialAdviceInput = {
+                transactions: processedTransactions,
+                budgets: (budgets || []).map(b => ({
+                    id: b.id || crypto.randomUUID(),
+                    categoryName: b.categoryName || 'Other',
+                    amount: typeof b.amount === 'number' && !isNaN(b.amount) ? b.amount : 0,
                 })),
-                budgets: budgets,
-                annualSalary: annualSalary,
+                annualSalary: typeof annualSalary === 'number' && !isNaN(annualSalary) ? annualSalary : undefined,
                 currentDate: new Date().toISOString()
             };
+
             const result = await getFinancialAdvice(processedInput);
-            setAdvice(result);
+            if (result) {
+                setAdvice(result);
+            } else {
+                setError("Sorry, I couldn't generate financial advice right now. Please try again later.");
+            }
         } catch (e) {
-            console.error(e);
+            console.error("Error fetching financial advice:", e);
             setError("Sorry, I couldn't generate financial advice right now. Please try again later.");
         } finally {
             setIsLoading(false);

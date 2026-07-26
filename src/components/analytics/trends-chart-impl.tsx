@@ -37,24 +37,26 @@ export default function LineChartComponent({ data }: { data: { month: string; in
         <Line 
           type="monotone" 
           dataKey="income" 
-          stroke="hsl(var(--chart-2))" 
-          strokeWidth={2}
+          name="Income"
+          stroke="#10B981" 
+          strokeWidth={3}
           dot={{
             r: 4,
-            fill: 'hsl(var(--chart-2))',
-            stroke: 'hsl(var(--background))',
+            fill: '#10B981',
+            stroke: 'hsl(var(--card))',
             strokeWidth: 2
           }}
         />
         <Line 
           type="monotone" 
           dataKey="expense" 
-          stroke="hsl(var(--chart-1))" 
-          strokeWidth={2}
+          name="Expense"
+          stroke="#F43F5E" 
+          strokeWidth={3}
           dot={{
             r: 4,
-            fill: 'hsl(var(--chart-1))',
-            stroke: 'hsl(var(--background))',
+            fill: '#F43F5E',
+            stroke: 'hsl(var(--card))',
             strokeWidth: 2
           }}
         />

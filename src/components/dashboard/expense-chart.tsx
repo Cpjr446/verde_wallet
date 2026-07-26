@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { useTransactions } from "@/context/app-context"
 import { useMemo } from "react"
-import { chartConfig } from "@/lib/chart-config"
+import { getCategoryColor } from "@/lib/colors"
 
 // Lazy load the heavy Recharts components
 const PieChartComponent = dynamic(
@@ -25,7 +25,7 @@ export default function ExpenseChart() {
     const expenseData = transactions
       .filter(t => t.type === 'expense')
       .reduce((acc, transaction) => {
-        const categoryName = transaction.category.name;
+        const categoryName = transaction.category?.name || 'Other';
         if (!acc[categoryName]) {
           acc[categoryName] = 0;
         }
@@ -34,7 +34,11 @@ export default function ExpenseChart() {
       }, {} as Record<string, number>);
 
     return Object.entries(expenseData)
-        .map(([name, total]) => ({ name, total, fill: `var(--chart-${Object.keys(chartConfig).indexOf(name) % 5 + 1})` }))
+        .map(([name, total], idx) => ({ 
+          name, 
+          total, 
+          fill: getCategoryColor(name, idx) 
+        }))
         .sort((a,b) => b.total - a.total);
   }, [transactions]);
 

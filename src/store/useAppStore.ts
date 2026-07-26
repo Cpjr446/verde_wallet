@@ -66,14 +66,22 @@ const customStorage: PersistStorage<AppState> = {
         if (value && typeof value === 'object' && '__date__' in value) {
           return new Date(value.__date__);
         }
+        if (key === 'date' && typeof value === 'string') {
+          const parsedDate = new Date(value);
+          if (!isNaN(parsedDate.getTime())) return parsedDate;
+        }
         return value;
       });
       
-      // Hydrate category icons since components cannot be serialized to JSON
+      // Hydrate category icons and dates since components/dates cannot be serialized to standard JSON
       if (parsed && parsed.state && Array.isArray(parsed.state.transactions)) {
         parsed.state.transactions = parsed.state.transactions.map((t: any) => {
           if (t.category && t.category.name) {
             t.category = CATEGORY_MAP[t.category.name] || CATEGORIES.find((c) => c.name === 'Other')!;
+          }
+          if (t.date && !(t.date instanceof Date)) {
+            const d = new Date(t.date);
+            t.date = !isNaN(d.getTime()) ? d : new Date();
           }
           return t;
         });

@@ -10,24 +10,47 @@ export default function PieChartComponent({ data }: { data: { name: string; tota
         <Tooltip
           cursor={{ fill: 'hsl(var(--muted))' }}
           contentStyle={{
-            backgroundColor: 'hsl(var(--background))',
+            backgroundColor: 'hsl(var(--card))',
             borderColor: 'hsl(var(--border))',
-            borderRadius: 'var(--radius)'
+            borderRadius: '0.5rem',
+            color: 'hsl(var(--card-foreground))',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
           }}
-          labelStyle={{ color: 'hsl(var(--foreground))' }}
+          labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: 'bold' }}
           itemStyle={{ color: 'hsl(var(--foreground))' }}
-          formatter={(value: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value)}
+          formatter={(value: number, name: string) => [
+            new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value),
+            name
+          ]}
         />
-        <Legend layout="vertical" align="right" verticalAlign="middle" />
+        <Legend
+          layout="vertical"
+          align="right"
+          verticalAlign="middle"
+          formatter={(value: string, entry: any) => {
+            const item = data.find(d => d.name === value);
+            return (
+              <span className="inline-flex items-center gap-2 text-xs font-medium text-foreground ml-1">
+                <span
+                  className="w-3 h-3 rounded-full inline-block flex-shrink-0"
+                  style={{ backgroundColor: entry.color || item?.fill }}
+                />
+                <span>{value}</span>
+              </span>
+            );
+          }}
+        />
         <Pie
           data={data}
           dataKey="total"
           nameKey="name"
-          cx="50%"
+          cx="45%"
           cy="50%"
-          outerRadius={120}
+          outerRadius={115}
           innerRadius={60}
-          paddingAngle={2}
+          paddingAngle={3}
+          stroke="hsl(var(--card))"
+          strokeWidth={2}
           labelLine={false}
           label={({
             cx,
@@ -48,10 +71,10 @@ export default function PieChartComponent({ data }: { data: { name: string; tota
               <text
                 x={x}
                 y={y}
-                fill="hsl(var(--card-foreground))"
-                textAnchor={x > cx ? "start" : "end"}
+                fill="#ffffff"
+                textAnchor="middle"
                 dominantBaseline="central"
-                className="text-xs font-medium"
+                className="text-xs font-bold drop-shadow-sm"
               >
                 {`${(percent * 100).toFixed(0)}%`}
               </text>
@@ -59,7 +82,7 @@ export default function PieChartComponent({ data }: { data: { name: string; tota
           }}
         >
           {data.map((entry, index) => (
-            <Cell key={`cell-${index}`} fill={entry.fill} />
+            <Cell key={`cell-${index}`} fill={entry.fill} stroke="hsl(var(--card))" strokeWidth={2} />
           ))}
         </Pie>
       </PieChart>

@@ -9,7 +9,7 @@
  */
 
 import { ai } from '@/ai/genkit';
-import { z } from 'genkit';
+import { z } from 'zod';
 import { taxCalculatorTool } from '../tools/tax-calculator';
 import { financialAdviceCache, createCacheKey } from '@/lib/ai-cache';
 
@@ -86,23 +86,27 @@ function generateFallbackAdvice(input: FinancialAdviceInput): FinancialAdviceOut
   const expenseRecommendations: string[] = [];
   const investmentSuggestions: string[] = [];
   const smartAlerts: string[] = [];
+  const transactions = input.transactions || [];
+  const budgets = input.budgets || [];
 
   // 1. Calculate expenses by category
   const expensesByCategory: Record<string, number> = {};
   let totalExpenses = 0;
-  for (const t of input.transactions) {
-    if (t.type === 'expense') {
-      const cat = t.category.name;
-      expensesByCategory[cat] = (expensesByCategory[cat] || 0) + t.amount;
-      totalExpenses += t.amount;
+  for (const t of transactions) {
+    if (t && t.type === 'expense') {
+      const cat = t.category?.name || 'Other';
+      const amt = typeof t.amount === 'number' && !isNaN(t.amount) ? t.amount : 0;
+      expensesByCategory[cat] = (expensesByCategory[cat] || 0) + amt;
+      totalExpenses += amt;
     }
   }
 
   // 2. Estimate net monthly income
   let netMonthlyIncome = 0;
-  if (input.annualSalary) {
+  if (typeof input.annualSalary === 'number' && input.annualSalary > 0) {
+    const salary = input.annualSalary;
     const standardDeduction = 15750;
-    const taxableIncome = Math.max(0, input.annualSalary - standardDeduction);
+    const taxableIncome = Math.max(0, salary - standardDeduction);
     const brackets = [
       { limit: 11925, rate: 0.10 },
       { limit: 48475, rate: 0.12 },
@@ -123,31 +127,36 @@ function generateFallbackAdvice(input: FinancialAdviceInput): FinancialAdviceOut
         break;
       }
     }
-    const stateTax = input.annualSalary * 0.05;
-    netMonthlyIncome = (input.annualSalary - (federalTax + stateTax)) / 12;
+    const stateTax = salary * 0.05;
+    netMonthlyIncome = (salary - (federalTax + stateTax)) / 12;
   } else {
     // Calculate from income transactions
-    for (const t of input.transactions) {
-      if (t.type === 'income') {
-        netMonthlyIncome += t.amount;
+    for (const t of transactions) {
+      if (t && t.type === 'income') {
+        const amt = typeof t.amount === 'number' && !isNaN(t.amount) ? t.amount : 0;
+        netMonthlyIncome += amt;
       }
     }
   }
 
   // 3. Generate Expense Recommendations
   let overBudgetCount = 0;
-  for (const b of input.budgets) {
-    const spent = expensesByCategory[b.categoryName] || 0;
-    if (spent > b.amount) {
+  for (const b of budgets) {
+    if (!b || !b.categoryName) continue;
+    const categoryName = b.categoryName;
+    const budgetAmount = typeof b.amount === 'number' ? b.amount : 0;
+    const spent = expensesByCategory[categoryName] || 0;
+    
+    if (spent > budgetAmount) {
       overBudgetCount++;
-      const excess = spent - b.amount;
+      const excess = spent - budgetAmount;
       expenseRecommendations.push(
-        `Your spending on '${b.categoryName}' is $${spent.toFixed(2)}, which exceeds your budget of $${b.amount.toFixed(2)} by $${excess.toFixed(2)}. Consider cutting back on discretionary items in this category.`
+        `Your spending on '${categoryName}' is $${spent.toFixed(2)}, which exceeds your budget of $${budgetAmount.toFixed(2)} by $${excess.toFixed(2)}. Consider cutting back on discretionary items in this category.`
       );
-    } else if (spent >= b.amount * 0.8) {
-      const pct = Math.round((spent / b.amount) * 100);
+    } else if (budgetAmount > 0 && spent >= budgetAmount * 0.8) {
+      const pct = Math.round((spent / budgetAmount) * 100);
       smartAlerts.push(
-        `Heads up: You've used ${pct}% of your '${b.categoryName}' budget ($${spent.toFixed(2)} of $${b.amount.toFixed(2)}).`
+        `Heads up: You've used ${pct}% of your '${categoryName}' budget ($${spent.toFixed(2)} of $${budgetAmount.toFixed(2)}).`
       );
     }
   }
@@ -184,11 +193,6 @@ function generateFallbackAdvice(input: FinancialAdviceInput): FinancialAdviceOut
   } else {
     smartAlerts.push("Alert: Great job! You are successfully staying within your total budget limits this month.");
   }
-  
-  // Developer notice to set up API Key for full AI functionality
-  smartAlerts.push(
-    "Tip: To enable personalized, generative AI financial recommendations, configure the GEMINI_API_KEY environment variable in your Vercel project settings."
-  );
 
   return {
     expenseRecommendations,
@@ -218,14 +222,37 @@ async function getFinancialAdviceWithCache(input: FinancialAdviceInput): Promise
   let output: FinancialAdviceOutput | null = null;
   try {
     const { output: modelOutput } = await prompt(input);
-    output = modelOutput!;
+    if (modelOutput && Array.isArray(modelOutput.expenseRecommendations)) {
+      output = modelOutput;
+    } else {
+      output = generateFallbackAdvice(input);
+    }
   } catch (e) {
     console.error('Failed to generate AI advice with Gemini. Generating fallback rule-based advice instead.', e);
-    output = generateFallbackAdvice(input);
+    try {
+      output = generateFallbackAdvice(input);
+    } catch (fallbackErr) {
+      console.error('Fallback advice generation failed:', fallbackErr);
+      output = {
+        expenseRecommendations: [
+          "Review your recurring subscriptions and discretionary spending to identify potential savings.",
+          "Consider building a monthly budget plan based on your average income and recurring expenses."
+        ],
+        investmentSuggestions: [
+          "Establish an emergency fund covering 3 to 6 months of living expenses in a High-Yield Savings Account.",
+          "Explore index funds or retirement savings accounts for long-term financial growth."
+        ],
+        smartAlerts: [
+          "Welcome to Verde Financial Assistant! Track your transactions and set up budgets for personalized advice."
+        ]
+      };
+    }
   }
   
   // Cache the result
-  financialAdviceCache.set(cacheKey, output, 1800000); // 30 minutes
+  if (output) {
+    financialAdviceCache.set(cacheKey, output, 1800000); // 30 minutes
+  }
   
   return output;
 }

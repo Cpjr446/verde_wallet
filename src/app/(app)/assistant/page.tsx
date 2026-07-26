@@ -10,6 +10,8 @@ import { AlertTriangle, BadgeCheck, Bot, Lightbulb, Loader2, TrendingUp } from "
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 
+import AssistantChatUI from "@/components/assistant/assistant-chat-ui";
+
 export default function AssistantPage() {
     const transactions = useTransactions();
     const budgets = useBudgets();
@@ -80,24 +82,24 @@ export default function AssistantPage() {
         <>
             <AppHeader title="AI Financial Assistant" />
             <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-                <Card className="text-center">
-                    <CardHeader>
-                        <CardTitle className="flex items-center justify-center gap-2 text-2xl">
-                           <Bot className="w-8 h-8"/> Meet Verde, your AI Assistant
+                <Card className="text-center bg-card border-border shadow-sm">
+                    <CardHeader className="pb-4">
+                        <CardTitle className="flex items-center justify-center gap-2 text-2xl font-bold">
+                           <Bot className="w-8 h-8 text-primary"/> Meet Verde, your AI Assistant
                         </CardTitle>
-                        <CardDescription>
-                           Get personalized financial insights and recommendations based on your recent activity.
+                        <CardDescription className="text-sm max-w-xl mx-auto">
+                           Get personalized financial insights, instant recommendations, or chat directly to clarify your doubts.
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button onClick={handleGetAdvice} disabled={isLoading}>
+                        <Button onClick={handleGetAdvice} disabled={isLoading} className="font-semibold shadow-sm">
                             {isLoading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Analyzing...
+                                    Analyzing Finances...
                                 </>
                             ) : (
-                                "Get My Financial Advice"
+                                "Get My Financial Advice Overview"
                             )}
                         </Button>
                     </CardContent>
@@ -113,44 +115,49 @@ export default function AssistantPage() {
 
                 {advice && (
                     <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-3">
-                        <Card>
+                        <Card className="border-border">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <BadgeCheck className="text-green-500"/> Smart Alerts
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <BadgeCheck className="text-emerald-500 w-5 h-5"/> Smart Alerts
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ul className="space-y-3 list-disc list-inside">
-                                    {advice.smartAlerts.map((item, index) => <li key={index}>{item}</li>)}
+                                <ul className="space-y-3 text-sm list-disc list-inside text-muted-foreground">
+                                    {advice.smartAlerts.map((item, index) => <li key={index} className="leading-relaxed">{item}</li>)}
                                 </ul>
                             </CardContent>
                         </Card>
-                        <Card>
+                        <Card className="border-border">
                             <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Lightbulb className="text-yellow-500"/> Expense Recommendations
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                    <Lightbulb className="text-amber-500 w-5 h-5"/> Expense Recommendations
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ul className="space-y-3 list-disc list-inside">
-                                    {advice.expenseRecommendations.map((item, index) => <li key={index}>{item}</li>)}
+                                <ul className="space-y-3 text-sm list-disc list-inside text-muted-foreground">
+                                    {advice.expenseRecommendations.map((item, index) => <li key={index} className="leading-relaxed">{item}</li>)}
                                 </ul>
                             </CardContent>
                         </Card>
-                        <Card>
+                        <Card className="border-border">
                              <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                     <TrendingUp className="text-blue-500"/> Investment Suggestions
+                                <CardTitle className="flex items-center gap-2 text-base">
+                                     <TrendingUp className="text-blue-500 w-5 h-5"/> Investment Suggestions
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
-                                <ul className="space-y-3 list-disc list-inside">
-                                    {advice.investmentSuggestions.map((item, index) => <li key={index}>{item}</li>)}
+                                <ul className="space-y-3 text-sm list-disc list-inside text-muted-foreground">
+                                    {advice.investmentSuggestions.map((item, index) => <li key={index} className="leading-relaxed">{item}</li>)}
                                 </ul>
                             </CardContent>
                         </Card>
                     </div>
                 )}
+
+                {/* Interactive Chat Section */}
+                <div className="pt-2">
+                    <AssistantChatUI />
+                </div>
             </div>
         </>
     );

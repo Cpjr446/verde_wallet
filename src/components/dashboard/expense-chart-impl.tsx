@@ -27,18 +27,13 @@ export default function PieChartComponent({ data }: { data: { name: string; tota
           layout="vertical"
           align="right"
           verticalAlign="middle"
-          formatter={(value: string, entry: any) => {
-            const item = data.find(d => d.name === value);
-            return (
-              <span className="inline-flex items-center gap-2 text-xs font-medium text-foreground ml-1">
-                <span
-                  className="w-3 h-3 rounded-full inline-block flex-shrink-0"
-                  style={{ backgroundColor: entry.color || item?.fill }}
-                />
-                <span>{value}</span>
-              </span>
-            );
-          }}
+          iconType="circle"
+          iconSize={10}
+          formatter={(value: string) => (
+            <span className="text-xs font-medium text-foreground ml-1.5 align-middle">
+              {value}
+            </span>
+          )}
         />
         <Pie
           data={data}
